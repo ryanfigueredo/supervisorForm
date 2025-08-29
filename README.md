@@ -34,3 +34,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment Variables
+
+Create `.env.local` with:
+
+```
+FORM_TO_EMAIL=contato@klfacilities.com.br
+FORM_FROM_EMAIL=nao-responder@klfacilities.com.br
+RESEND_API_KEY=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+```
+
+The API prefers Resend if `RESEND_API_KEY` is set; otherwise falls back to SMTP. If neither is configured, it returns an explicit error.

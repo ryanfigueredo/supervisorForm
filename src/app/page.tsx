@@ -1,103 +1,230 @@
-import Image from "next/image";
+"use client";
+
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+const schema = z.object({
+  nome: z.string().min(2, "Informe o nome"),
+  cidade: z.string().min(2, "Informe a cidade"),
+  telefone: z.string().min(10, "Telefone inválido"),
+  iniciaEm: z.string().min(1, "Informe a data"),
+  contrato: z.string().min(1, "Informe o tipo de contrato"),
+  cargoDe: z.string().min(1, "Informe o cargo"),
+  turno: z.string().min(1, "Informe o turno"),
+  valorVT: z.string().min(1, "Informe o valor de VT"),
+  chavePix: z.string().min(1, "Informe a chave PIX"),
+  banco: z.string().min(1, "Informe o banco"),
+  supervisorResponsavel: z.string().min(2, "Informe o supervisor"),
+  website: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof schema>;
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const onSubmit = async (values: FormValues) => {
+    if (values.website && values.website.trim().length > 0) {
+      return; // honeypot
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Falha ao enviar");
+      }
+      window.location.href = "/sucesso";
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Erro ao enviar o relatório";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const maskPhone = (v: string) => {
+    const digits = v.replace(/\D/g, "").slice(0, 11);
+    const part1 = digits.slice(0, 2);
+    const part2 = digits.slice(2, 7);
+    const part3 = digits.slice(7, 11);
+    if (digits.length <= 2) return `(${part1}`;
+    if (digits.length <= 7) return `(${part1}) ${part2}`;
+    return `(${part1}) ${part2}-${part3}`;
+  };
+
+  return (
+    <main className="mx-auto max-w-2xl rounded px-4 py-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Enviar cadastro</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+            <div>
+              <label className="block text-sm font-medium">NOME</label>
+              <Input placeholder="Digite o nome" {...register("nome")} />
+              {errors.nome && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.nome.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">CIDADE</label>
+              <Input placeholder="Ex.: São Paulo" {...register("cidade")} />
+              {errors.cidade && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.cidade.message}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">TELEFONE</label>
+              <Input
+                placeholder="(99) 99999-9999"
+                {...register("telefone")}
+                onChange={(e) => {
+                  e.target.value = maskPhone(e.target.value);
+                }}
+              />
+              {errors.telefone && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.telefone.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">ÍNICIA EM</label>
+                <Input type="date" {...register("iniciaEm")} />
+                {errors.iniciaEm && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.iniciaEm.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium">CONTRATO</label>
+                <Input placeholder="Ex.: CLT, PJ" {...register("contrato")} />
+                {errors.contrato && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.contrato.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">CARGO DE</label>
+                <Input
+                  placeholder="Ex.: Auxiliar de Limpeza"
+                  {...register("cargoDe")}
+                />
+                {errors.cargoDe && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.cargoDe.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium">TURNO</label>
+                <Input
+                  placeholder="Ex.: Manhã, Tarde, Noite"
+                  {...register("turno")}
+                />
+                {errors.turno && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.turno.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">VALOR VT</label>
+                <Input placeholder="Ex.: 12,00" {...register("valorVT")} />
+                {errors.valorVT && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.valorVT.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium">CHAVE PIX</label>
+                <Input
+                  placeholder="CPF, Email ou Celular"
+                  {...register("chavePix")}
+                />
+                {errors.chavePix && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.chavePix.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">BANCO</label>
+                <Input placeholder="Ex.: Nubank" {...register("banco")} />
+                {errors.banco && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.banco.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium">
+                  SUPERVISOR RESPONSÁVEL
+                </label>
+                <Input
+                  placeholder="Nome do supervisor"
+                  {...register("supervisorResponsavel")}
+                />
+                {errors.supervisorResponsavel && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.supervisorResponsavel.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <input
+              type="text"
+              className="hidden"
+              tabIndex={-1}
+              autoComplete="off"
+              {...register("website")}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Enviando..." : "Enviar cadastro"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </main>
   );
 }
