@@ -15,6 +15,7 @@ const formSchema = z.object({
   chavePix: z.string().min(1),
   banco: z.string().min(1),
   supervisorResponsavel: z.string().min(2),
+  observacao: z.string().optional(),
   website: z.string().optional(),
 });
 
@@ -57,6 +58,7 @@ function renderHtml(data: z.infer<typeof formSchema>) {
     ["CHAVE PIX", sanitize(data.chavePix)],
     ["BANCO", sanitize(data.banco)],
     ["SUPERVISOR RESPONSÁVEL", sanitize(data.supervisorResponsavel)],
+    ["OBSERVAÇÃO", sanitize(data.observacao || "")],
   ];
   return `
   <div style="font-family: -apple-system, Segoe UI, Roboto, Arial;">
@@ -74,6 +76,8 @@ function renderHtml(data: z.infer<typeof formSchema>) {
     </table>
   </div>`;
 }
+
+// WhatsApp text removed as per requirement
 
 export async function POST(req: NextRequest) {
   const ip =
@@ -105,8 +109,21 @@ export async function POST(req: NextRequest) {
 
   const subject = `Cadastro — ${data.nome} — ${data.cargoDe}`;
   const html = renderHtml(data);
+  // WhatsApp text removed
 
-  const to = process.env.FORM_TO_EMAIL || "contato@klfacilities.com.br";
+  // Recipients: from env (FORM_TO_EMAILS or FORM_TO_EMAIL), with safe defaults
+  const envList = process.env.FORM_TO_EMAILS || process.env.FORM_TO_EMAIL || "";
+  const recipients = (
+    envList
+      ? envList.split(",")
+      : [
+          "contato@klfacilities.com.br",
+          "rh@klfacilities.com.br",
+          "luciano.lopes@klfacilities.com.br",
+        ]
+  )
+    .map((e) => e.trim())
+    .filter(Boolean);
   const from =
     process.env.FORM_FROM_EMAIL || "nao-responder@klfacilities.com.br";
 
@@ -116,10 +133,12 @@ export async function POST(req: NextRequest) {
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
 
+  // WhatsApp broadcast removed (not used for now)
+
   try {
     if (resendKey) {
       const resend = new Resend(resendKey);
-      await resend.emails.send({ to, from, subject, html });
+      await resend.emails.send({ to: recipients, from, subject, html });
     } else if (smtpHost && smtpUser && smtpPass) {
       const transporter = nodemailer.createTransport({
         host: smtpHost,
@@ -127,12 +146,19 @@ export async function POST(req: NextRequest) {
         secure: smtpPort === 465,
         auth: { user: smtpUser, pass: smtpPass },
       });
-      await transporter.sendMail({ to, from, subject, html });
+      await transporter.sendMail({
+        to: recipients.join(","),
+        from,
+        subject,
+        html,
+      });
     } else {
       return new NextResponse("Provedor de e-mail não configurado", {
         status: 500,
       });
     }
+
+    // no WhatsApp integration
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : "Erro ao enviar e-mail";

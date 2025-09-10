@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const schema = z.object({
@@ -21,6 +22,7 @@ const schema = z.object({
   chavePix: z.string().min(1, "Informe a chave PIX"),
   banco: z.string().min(1, "Informe o banco"),
   supervisorResponsavel: z.string().min(2, "Informe o supervisor"),
+  observacao: z.string().optional(),
   website: z.string().optional(),
 });
 
@@ -209,6 +211,14 @@ export default function Home() {
                   </p>
                 )}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">OBSERVAÇÃO</label>
+              <Textarea
+                placeholder="Informações extras, observações, detalhes relevantes"
+                {...register("observacao")}
+              />
             </div>
 
             <input
